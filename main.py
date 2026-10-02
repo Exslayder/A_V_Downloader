@@ -1,9 +1,87 @@
-import yt_dlp
 import json
 import os
-import sys
 import shutil
+import subprocess
+import sys
+import urllib.request
 from pathlib import Path
+import yt_dlp
+
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).parent
+
+SETTINGS_FILE = BASE_DIR / "settings.json"
+VERSION_FILE = BASE_DIR / "version.json"
+DEFAULT_PATH = str(BASE_DIR)
+GITHUB_API_URL = "https://api.github.com/repos/Exslayder/A_V_Downloader/releases/latest"
+
+# ---------- AUTO UPDATE ----------
+def check_for_updates():
+    if not getattr(sys, 'frozen', False):
+        return
+
+    print("🔄 Проверка обновлений...")
+    try:
+        req = urllib.request.Request(
+            GITHUB_API_URL, 
+            headers={"User-Agent": "Mozilla/5.0"}
+        )
+        with urllib.request.urlopen(req, timeout=5) as response:
+            release_data = json.loads(response.read().decode())
+
+        exe_asset = None
+        for asset in release_data.get("assets", []):
+            if asset.get("name") == "main.exe":
+                exe_asset = asset
+                break
+
+        if not exe_asset:
+            print("⚠️ Не найден main.exe в последнем релизе.")
+            return
+
+        download_url = exe_asset["browser_download_url"]
+        remote_updated_at = exe_asset["updated_at"]
+
+        local_updated_at = ""
+        if VERSION_FILE.exists():
+            try:
+                with open(VERSION_FILE, "r", encoding="utf-8") as f:
+                    v_data = json.load(f)
+                    local_updated_at = v_data.get("updated_at", "")
+            except Exception:
+                pass
+
+        if local_updated_at == remote_updated_at:
+            print("✅ У вас установлена последняя версия!")
+            return
+
+        print("🚀 Найдена новая версия на GitHub! Скачивание обновления...")
+        new_exe_path = BASE_DIR / "main_new.exe"
+        
+        urllib.request.urlretrieve(download_url, new_exe_path)
+
+        with open(VERSION_FILE, "w", encoding="utf-8") as f:
+            json.dump({"updated_at": remote_updated_at}, f, indent=4)
+
+        current_exe = Path(sys.executable)
+        updater_bat = BASE_DIR / "updater.bat"
+        bat_content = f"""@echo off
+timeout /t 2 /nobreak > NUL
+move /y "{new_exe_path}" "{current_exe}"
+start "" "{current_exe}"
+del "%~f0"
+"""
+        with open(updater_bat, "w", encoding="utf-8") as f:
+            f.write(bat_content)
+
+        print("✨ Обновление скачано! Перезапуск программы...")
+        subprocess.Popen([str(updater_bat)], shell=True)
+        sys.exit(0)
+
+    except Exception as e:
+        print(f"⚠️ Ошибка при проверке обновлений: {e}")
 
 def get_ffmpeg_path():
     if getattr(sys, 'frozen', False):
@@ -14,14 +92,6 @@ def get_ffmpeg_path():
         return ffmpeg_exe
     
     return "ffmpeg"
-
-if getattr(sys, 'frozen', False):
-    BASE_DIR = Path(sys.executable).parent
-else:
-    BASE_DIR = Path(__file__).parent
-
-SETTINGS_FILE = BASE_DIR / "settings.json"
-DEFAULT_PATH = str(BASE_DIR)
 
 # ---------- SETTINGS ----------
 def load_settings():
@@ -48,7 +118,7 @@ def load_settings():
                 save_settings(settings)
             return settings
     except (json.JSONDecodeError, OSError):
-        print("⚠️ settings.json повреждён, пересоздаю файл")
+        print("⚠️️ settings.json повреждён, пересоздаю файл")
         save_settings(default_settings)
         return default_settings
 
@@ -219,6 +289,7 @@ def download_flow(choice, settings):
 
 # ---------- MENU ----------
 def main():
+    check_for_updates()
     settings = load_settings()
     while True:
         print("\n📥 Youtube and SoundCloud DOWNLOADER")
