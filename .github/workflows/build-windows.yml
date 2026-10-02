@@ -37,13 +37,11 @@ jobs:
       run: pyinstaller --onefile --console --add-binary "ffmpeg.exe;." main.py
 
     - name: Publish/Update Single Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: "latest"
+        name: "Latest Release"
+        body: "Автоматически обновляемая сборка с последними версиями yt-dlp и ffmpeg."
+        files: dist/main.exe
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        git tag -f latest
-        git push -f origin latest
-        
-        gh release create latest dist/main.exe --title "Latest Release" --notes "Автоматически обновляемая сборка с последними версиями yt-dlp и ffmpeg." --clobber || gh release upload latest dist/main.exe --clobber
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
