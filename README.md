@@ -1,18 +1,17 @@
-# Скрипт для скачивания с Youtube
+# Консольная утилита для скачивания видео и аудио с YouTube и SoundCloud.
 
-Консольная утилита для скачивания видео и аудио с YouTube и SoundCloud.
+Для использования через ".exe", доступен архив для скачивания файла.
 
-Для использования через ".exe", в релизе v2.0.0 доступен архив для скачивания файла.
-
+[Ссылка на последний релиз](https://github.com/Exslayder/youtube_dwn/releases/tag/v2.0.0)
 
 ## Возможности
 - Скачать видео (mp4,webm)
 - Скачать аудиодорожку (mp3 - 320kbps)
 - Сохранение настроект
 
-## Запуск
+## Для использования с помощью Python
 ```bash
 python main.py
 ```
 ## Пример
-<img width="1478" height="750" alt="image" src="https://github.com/user-attachments/assets/8be752d7-ea91-4fe9-ab11-f83d5b509e8a" />
+<img width="1109" height="615" alt="image" src="https://github.com/user-attachments/assets/961c9313-1a37-43b5-ae6d-524786a60685" />
