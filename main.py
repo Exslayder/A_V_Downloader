@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import urllib.request
+from datetime import datetime
 from pathlib import Path
 import yt_dlp
 
@@ -18,6 +19,13 @@ DEFAULT_PATH = str(BASE_DIR)
 GITHUB_API_URL = "https://api.github.com/repos/Exslayder/A_V_Downloader/releases/latest"
 
 # ---------- AUTO UPDATE ----------
+def format_github_date(iso_str):
+    try:
+        dt = datetime.strptime(iso_str, "%Y-%m-%dT%H:%M:%SZ")
+        return dt.strftime("%d.%m.%Y %H:%M UTC")
+    except Exception:
+        return iso_str
+
 def check_for_updates():
     if not getattr(sys, 'frozen', False):
         return
@@ -43,6 +51,7 @@ def check_for_updates():
 
         download_url = exe_asset["browser_download_url"]
         remote_updated_at = exe_asset["updated_at"]
+        formatted_date = format_github_date(remote_updated_at)
 
         local_updated_at = ""
         if VERSION_FILE.exists():
@@ -54,10 +63,10 @@ def check_for_updates():
                 pass
 
         if local_updated_at == remote_updated_at:
-            print("✅ У вас установлена последняя версия!")
+            print(f"✅ У вас установлена последняя версия! (Обновление от {formatted_date})")
             return
 
-        print("🚀 Найдена новая версия на GitHub! Скачивание обновления...")
+        print(f"🚀 Найдена новая версия от {formatted_date}! Скачивание обновления...")
         new_exe_path = BASE_DIR / "main_new.exe"
         
         urllib.request.urlretrieve(download_url, new_exe_path)
@@ -118,7 +127,7 @@ def load_settings():
                 save_settings(settings)
             return settings
     except (json.JSONDecodeError, OSError):
-        print("⚠️️ settings.json повреждён, пересоздаю файл")
+        print("⚠️ settings.json повреждён, пересоздаю файл")
         save_settings(default_settings)
         return default_settings
 
