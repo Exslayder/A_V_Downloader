@@ -20,13 +20,14 @@ VERSION_FILE = BASE_DIR / "version.json"
 DEFAULT_PATH = str(BASE_DIR)
 GITHUB_API_URL = "https://api.github.com/repos/Exslayder/A_V_Downloader/releases/latest"
 
-# ---------- HELPER UTILS ----------
+# ---------- HELPER GUI UTILS ----------
 def select_path_via_gui(title="Выберите путь", select_folder=False, filetypes=None):
     selected_path = ""
     try:
         root = tk.Tk()
         root.withdraw()
         root.attributes("-topmost", True)
+        root.focus_force()
         
         if select_folder:
             selected_path = filedialog.askdirectory(title=title)
@@ -39,9 +40,9 @@ def select_path_via_gui(title="Выберите путь", select_folder=False, 
         pass
 
     if not selected_path:
-        prompt_msg = "Введите путь к папке" if select_folder else "Вставьте путь к файлу"
-        print(f"💡 Вы можете перетащить объект мышью в это окно консоли.")
-        selected_path = input(f"{prompt_msg} (или Enter для отмены): ").strip().strip('"')
+        prompt_msg = "Введи новый путь к папке" if select_folder else "Вставь путь к файлу .webm"
+        print("💡 Вы можете перетащить объект мышью в это окно консоли.")
+        selected_path = input(f"{prompt_msg} (или Enter чтобы оставить как есть): ").strip().strip('"')
 
     return selected_path
 
@@ -173,7 +174,7 @@ def update_folder_setting(current_path_type, current_path):
     )
     
     if not new_path:
-        print("❌ Отмена. Путь оставлен без изменений.")
+        print("❌ Изменения не сохранены.")
         return current_path
 
     path = Path(new_path).expanduser()
@@ -247,9 +248,11 @@ def convert_webm_to_mp4():
     cmd_nvenc = [
         ffmpeg_bin,
         "-y",
+        "-hwaccel", "cuda",
         "-i", str(input_file),
         "-c:v", "h264_nvenc",
-        "-preset", "p4",
+        "-preset", "p1",
+        "-rc", "vbr",
         "-cq", "18",
         "-c:a", "aac",
         "-progress", "pipe:1",
@@ -262,6 +265,7 @@ def convert_webm_to_mp4():
         "-y",
         "-i", str(input_file),
         "-c:v", "libx264",
+        "-preset", "ultrafast",
         "-crf", "18",
         "-c:a", "aac",
         "-progress", "pipe:1",
