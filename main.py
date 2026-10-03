@@ -3,6 +3,8 @@ import os
 import shutil
 import subprocess
 import sys
+import tkinter as tk
+from tkinter import filedialog
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -168,6 +170,117 @@ def settings_menu(settings):
             settings["video_path"] = get_new_path_from_user("видео", settings["video_path"])
             save_settings(settings)
 
+# ---------- CONVERT ----------
+def get_video_duration(input_file, ffmpeg_bin):
+    cmd = [
+        ffmpeg_bin,
+        "-i", str(input_file)
+    ]
+    process = subprocess.Popen(cmd, stderr=subprocess.PIPE, universal_newlines=True, encoding="utf-8", errors="ignore")
+    _, stderr = process.communicate()
+    for line in stderr.splitlines():
+        if "Duration:" in line:
+            try:
+                time_str = line.split("Duration:")[1].split(",")[0].strip()
+                h, m, s = time_str.split(":")
+                return float(h) * 3600 + float(m) * 60 + float(s)
+            except Exception:
+                pass
+    return 0.0
+
+def convert_webm_to_mp4():
+    print("\n📂 Открываю окно выбора файла...")
+
+    file_path = ""
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        
+        file_path = filedialog.askopenfilename(
+            title="Выберите WEBM файл для конвертации",
+            filetypes=[("WEBM видео", "*.webm"), ("Все файлы", "*.*")]
+        )
+        root.destroy()
+    except Exception:
+        pass
+
+    if not file_path:
+        print("💡 Вы можете перетащить файл мышью в это окно консоли.")
+        file_path = input("Вставь путь к файлу .webm (или Enter для отмены): ").strip().strip('"')
+
+    if not file_path:
+        print("❌ Файл не выбран.")
+        return
+
+    input_file = Path(file_path)
+
+    if not input_file.exists() or not input_file.is_file():
+        print("❌ Ошибка: Указанный файл не найден!")
+        return
+
+    output_file = input_file.with_suffix(".mp4")
+    ffmpeg_bin = get_ffmpeg_path()
+
+    total_duration = get_video_duration(input_file, ffmpeg_bin)
+
+    cmd = [
+        ffmpeg_bin,
+        "-y",
+        "-i", str(input_file),
+        "-c:v", "libx264",
+        "-crf", "18",
+        "-c:a", "aac",
+        "-progress", "pipe:1",
+        "-nostats",
+        str(output_file)
+    ]
+
+    print(f"\n🎬 Начинаю конвертацию файла: {input_file.name}...")
+
+    try:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True,
+            encoding="utf-8",
+            errors="ignore"
+        )
+
+        out_time_ms = 0
+        speed = "1x"
+
+        for line in process.stdout:
+            line = line.strip()
+            if line.startswith("out_time_ms="):
+                try:
+                    val = line.split("=")[1]
+                    out_time_ms = int(val)
+                except ValueError:
+                    pass
+            elif line.startswith("speed="):
+                speed = line.split("=")[1].strip()
+            elif line.startswith("progress="):
+                current_sec = out_time_ms / 1_000_000.0
+                if total_duration > 0:
+                    percent = min(100.0, (current_sec / total_duration) * 100)
+                    print(f"\r⚙️\tКонвертация | ⬇ {percent:.1f}% | Скорость: {speed}   ", end="", flush=True)
+                else:
+                    m, s = divmod(int(current_sec), 60)
+                    print(f"\r⚙️\tОбработано: {m:02d}:{s:02d} | Скорость: {speed}   ", end="", flush=True)
+
+        process.wait()
+
+        if process.returncode == 0:
+            print(f"\n\n✨\tКОНВЕРТАЦИЯ ЗАВЕРШЕНА")
+            print(f"🎉\tФайл успешно сохранён: {output_file}")
+        else:
+            print("\n❌ Ошибка во время конвертации через FFmpeg.")
+
+    except Exception as e:
+        print(f"\n⚠️ Произошла ошибка: {e}")
+
 # ---------- DOWNLOAD ----------
 def choose_options(choice: str):
     if choice == "1":
@@ -305,12 +418,14 @@ def main():
         print("1) 🎥\tВидео MP4 - максимально доступное качество")
         print("2) 🎬\tВидео WEBM - максимально доступное качество")
         print("3) 🔊\tАудио MP3 - 320kbps")
-        print("4) 🔧\tНастройки")
+        print("4) 🔄\tКонвертация из WEBM в MP4")
+        print("5) 🔧\tНастройки")
         print("0) ❌\tВыход")
 
         choice = input("Номер: ").strip()
         if choice == "0": break
-        elif choice == "4": settings_menu(settings)
+        elif choice == "4": convert_webm_to_mp4()
+        elif choice == "5": settings_menu(settings)
         elif choice in {"1", "2", "3"}: download_flow(choice, settings)
 
 if __name__ == "__main__":

@@ -28,17 +28,19 @@ jobs:
         pip install --upgrade yt-dlp pyinstaller -r requirements.txt
 
     - name: Download ffmpeg
+      shell: powershell
       run: |
-        curl -L -o ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
-        tar -xf ffmpeg.zip
-        move ffmpeg-*/bin/ffmpeg.exe .
+        curl.exe -L -o ffmpeg.zip https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip
+        Expand-Archive -Path ffmpeg.zip -DestinationPath ffmpeg_extracted
+        Get-ChildItem -Path ffmpeg_extracted -Filter ffmpeg.exe -Recurse | Move-Item -Destination .
 
     - name: Build EXE
-      run: pyinstaller --onefile --console --add-binary "ffmpeg.exe;." main.py
+      run: pyinstaller --onefile --console --hidden-import=tkinter --add-binary "ffmpeg.exe;." main.py
 
     - name: Upload to Latest Release
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: powershell
       run: |
         $LATEST_TAG = (gh release list --limit 1 --json tagName,isLatest -q ".[] | select(.isLatest == true).tagName")
         
