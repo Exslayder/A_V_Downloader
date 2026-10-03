@@ -20,6 +20,41 @@ VERSION_FILE = BASE_DIR / "version.json"
 DEFAULT_PATH = str(BASE_DIR)
 GITHUB_API_URL = "https://api.github.com/repos/Exslayder/A_V_Downloader/releases/latest"
 
+# ---------- HELPER UTILS ----------
+def select_path_via_gui(title="Выберите путь", select_folder=False, filetypes=None):
+    selected_path = ""
+    try:
+        root = tk.Tk()
+        root.withdraw()
+        root.attributes("-topmost", True)
+        
+        if select_folder:
+            selected_path = filedialog.askdirectory(title=title)
+        else:
+            types = filetypes or [("Все файлы", "*.*")]
+            selected_path = filedialog.askopenfilename(title=title, filetypes=types)
+            
+        root.destroy()
+    except Exception:
+        pass
+
+    if not selected_path:
+        prompt_msg = "Введите путь к папке" if select_folder else "Вставьте путь к файлу"
+        print(f"💡 Вы можете перетащить объект мышью в это окно консоли.")
+        selected_path = input(f"{prompt_msg} (или Enter для отмены): ").strip().strip('"')
+
+    return selected_path
+
+def get_ffmpeg_path():
+    if getattr(sys, 'frozen', False):
+        return os.path.join(sys._MEIPASS, "ffmpeg.exe")
+    
+    ffmpeg_exe = shutil.which("ffmpeg")
+    if ffmpeg_exe:
+        return ffmpeg_exe
+    
+    return "ffmpeg"
+
 # ---------- AUTO UPDATE ----------
 def format_github_date(iso_str):
     try:
@@ -94,16 +129,6 @@ del "%~f0"
     except Exception as e:
         print(f"⚠️ Ошибка при проверке обновлений: {e}")
 
-def get_ffmpeg_path():
-    if getattr(sys, 'frozen', False):
-        return os.path.join(sys._MEIPASS, "ffmpeg.exe")
-    
-    ffmpeg_exe = shutil.which("ffmpeg")
-    if ffmpeg_exe:
-        return ffmpeg_exe
-    
-    return "ffmpeg"
-
 # ---------- SETTINGS ----------
 def load_settings():
     default_settings = {
@@ -137,17 +162,25 @@ def save_settings(settings):
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
         json.dump(settings, f, indent=4, ensure_ascii=False)
 
-def get_new_path_from_user(current_path_type, current_path):
+def update_folder_setting(current_path_type, current_path):
     print(f"\n⚙️ ИЗМЕНЕНИЕ ПУТИ ДЛЯ: {current_path_type.upper()}")
     print(f"Текущий путь: {current_path}")
-    new_path = input("Введи новый путь (или Enter чтобы оставить как есть): ").strip()
+    print("📂 Открываю окно выбора папки...")
+
+    new_path = select_path_via_gui(
+        title=f"Выберите папку для сохранения {current_path_type}",
+        select_folder=True
+    )
     
     if not new_path:
+        print("❌ Отмена. Путь оставлен без изменений.")
         return current_path
 
     path = Path(new_path).expanduser()
     if path.exists() and path.is_dir():
-        return str(path.resolve())
+        resolved = str(path.resolve())
+        print(f"✅ Новый путь установлен: {resolved}")
+        return resolved
     else:
         print("❌ Путь не существует или это не папка! Изменения не сохранены.")
         return current_path
@@ -164,10 +197,10 @@ def settings_menu(settings):
         choice = input("Номер: ").strip()
         if choice == "0": break
         elif choice == "1":
-            settings["audio_path"] = get_new_path_from_user("аудио", settings["audio_path"])
+            settings["audio_path"] = update_folder_setting("аудио", settings["audio_path"])
             save_settings(settings)
         elif choice == "2":
-            settings["video_path"] = get_new_path_from_user("видео", settings["video_path"])
+            settings["video_path"] = update_folder_setting("видео", settings["video_path"])
             save_settings(settings)
 
 # ---------- CONVERT ----------
@@ -191,23 +224,11 @@ def get_video_duration(input_file, ffmpeg_bin):
 def convert_webm_to_mp4():
     print("\n📂 Открываю окно выбора файла...")
 
-    file_path = ""
-    try:
-        root = tk.Tk()
-        root.withdraw()
-        root.attributes("-topmost", True)
-        
-        file_path = filedialog.askopenfilename(
-            title="Выберите WEBM файл для конвертации",
-            filetypes=[("WEBM видео", "*.webm"), ("Все файлы", "*.*")]
-        )
-        root.destroy()
-    except Exception:
-        pass
-
-    if not file_path:
-        print("💡 Вы можете перетащить файл мышью в это окно консоли.")
-        file_path = input("Вставь путь к файлу .webm (или Enter для отмены): ").strip().strip('"')
+    file_path = select_path_via_gui(
+        title="Выберите WEBM файл для конвертации",
+        select_folder=False,
+        filetypes=[("WEBM видео", "*.webm"), ("Все файлы", "*.*")]
+    )
 
     if not file_path:
         print("❌ Файл не выбран.")
@@ -221,10 +242,22 @@ def convert_webm_to_mp4():
 
     output_file = input_file.with_suffix(".mp4")
     ffmpeg_bin = get_ffmpeg_path()
-
     total_duration = get_video_duration(input_file, ffmpeg_bin)
 
-    cmd = [
+    cmd_nvenc = [
+        ffmpeg_bin,
+        "-y",
+        "-i", str(input_file),
+        "-c:v", "h264_nvenc",
+        "-preset", "p4",
+        "-cq", "18",
+        "-c:a", "aac",
+        "-progress", "pipe:1",
+        "-nostats",
+        str(output_file)
+    ]
+
+    cmd_cpu = [
         ffmpeg_bin,
         "-y",
         "-i", str(input_file),
@@ -238,11 +271,11 @@ def convert_webm_to_mp4():
 
     print(f"\n🎬 Начинаю конвертацию файла: {input_file.name}...")
 
-    try:
+    def run_ffmpeg(cmd):
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             universal_newlines=True,
             encoding="utf-8",
             errors="ignore"
@@ -271,15 +304,19 @@ def convert_webm_to_mp4():
                     print(f"\r⚙️\tОбработано: {m:02d}:{s:02d} | Скорость: {speed}   ", end="", flush=True)
 
         process.wait()
+        return process.returncode
 
-        if process.returncode == 0:
-            print(f"\n\n✨\tКОНВЕРТАЦИЯ ЗАВЕРШЕНА")
-            print(f"🎉\tФайл успешно сохранён: {output_file}")
-        else:
-            print("\n❌ Ошибка во время конвертации через FFmpeg.")
+    return_code = run_ffmpeg(cmd_nvenc)
 
-    except Exception as e:
-        print(f"\n⚠️ Произошла ошибка: {e}")
+    if return_code != 0:
+        print("\n⚠️ Nvidia NVENC не доступен. Переключаюсь на кодирование через CPU...")
+        return_code = run_ffmpeg(cmd_cpu)
+
+    if return_code == 0:
+        print(f"\n\n✨\tКОНВЕРТАЦИЯ ЗАВЕРШЕНА")
+        print(f"🎉\tФайл успешно сохранён: {output_file}")
+    else:
+        print("\n❌ Ошибка во время конвертации через FFmpeg.")
 
 # ---------- DOWNLOAD ----------
 def choose_options(choice: str):
