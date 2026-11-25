@@ -48,7 +48,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/Exslayder/A_V_Downloader/releases/latest/download/latest.json"
+        "https://github.com/Exslayder/AVDock/releases/latest/download/latest.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI5OTNGRjEwQ0EzMTI3QUIKUldTckp6SEtFUCtUdWVqcHlIM1RrbHhKSXlVd2ZVSGNRY3J5QUFnV0YwMnBPNldHc3VXSlNGMW4K",
       "windows": {

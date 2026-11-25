@@ -4,6 +4,9 @@
 
 AVDock — новая версия проекта `A_V_Downloader`: тот же движок загрузки (yt-dlp) и те же режимы, но вместо консольного меню интерфейс на Tauri 2 + React с Rust-бэкендом.
 
+Репозиторий: [github.com/Exslayder/AVDock](https://github.com/Exslayder/AVDock)
+Релизы: [github.com/Exslayder/AVDock/releases](https://github.com/Exslayder/AVDock/releases)
+
 ## Возможности
 
 - **Скачивание** — YouTube и SoundCloud, видео MP4/WEBM и аудио MP3 320 kbps.
@@ -131,7 +134,7 @@ Workflow запускается по тегу `v*` или вручную чер�
 
 Приватный ключ в репозиторий не попадает: папка `.tauri-keys` в `.gitignore`. Если ключ потерять, автообновления перестанут проверяться подписью.
 
-Endpoint обновлений: `https://github.com/Exslayder/A_V_Downloader/releases/latest/download/latest.json`.
+Endpoint обновлений: `https://github.com/Exslayder/AVDock/releases/latest/download/latest.json`.
 
 ## Структура
 
