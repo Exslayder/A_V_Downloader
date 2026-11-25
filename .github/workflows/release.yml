@@ -114,12 +114,20 @@ jobs:
           body: |
             AVDock ${{ env.VERSION }}
 
-            Два варианта установки:
+            ## Установка
 
-            - **Установочная версия** — `AVDock_${{ env.VERSION }}_x64-setup.exe`
-            - **Портативная версия** — `AVDock_${{ env.VERSION }}_portable.zip`
+            - **Установочная версия** — `AVDock_${{ env.VERSION }}_x64-setup.exe`. Ставится без прав администратора, ffmpeg уже внутри.
+            - **Портативная версия** — `AVDock_${{ env.VERSION }}_portable.zip`. Распаковать целиком и запустить `AVDock.exe`.
 
-            yt-dlp обновляется автоматически внутри приложения. Обновление AVDock приходит через `latest.json`.
+            ## Возможности
+
+            - Скачивание YouTube и SoundCloud: MP4, WEBM, MP3 320 kbps.
+            - SoundCloud автоматически переключает формат на MP3.
+            - Конвертер: MP4, MKV, WEBM, MOV, MP3, M4A, WAV.
+            - Светлая, тёмная и системная тема, русский и английский язык.
+            - Автообновление yt-dlp и приложения.
+
+            Настройки и yt-dlp хранятся в папке `data` рядом с программой.
           files: ${{ env.FILES }}
           draft: false
           prerelease: false
