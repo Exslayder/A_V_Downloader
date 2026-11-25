@@ -1,0 +1,33 @@
+[package]
+name = "avdock"
+version = "0.1.0"
+description = "AVDock — downloader and converter for YouTube and SoundCloud"
+authors = ["Exslayder"]
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "avdock_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
+tauri-plugin-single-instance = "2"
+tauri-plugin-opener = "2"
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "rt-multi-thread", "macros", "fs"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream", "json"] }
+futures-util = "0.3"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

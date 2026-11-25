@@ -1,0 +1,125 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Версия без v, например 0.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Fetch ffmpeg
+        shell: pwsh
+        run: ./scripts/get-ffmpeg.ps1
+
+      - name: Build AVDock
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npm run tauri build
+
+      - name: Prepare release files
+        shell: pwsh
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          if ($env:GITHUB_REF -like 'refs/tags/*') {
+            $tag = $env:GITHUB_REF -replace '^refs/tags/', ''
+          } else {
+            $tag = "v$($env:INPUT_VERSION)"
+          }
+          $version = $tag.TrimStart('v')
+          "TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+          $bundle = "src-tauri/target/release/bundle/nsis"
+          $installer = "$bundle/AVDock_${version}_x64-setup.exe"
+          $zipUpdate = "$bundle/AVDock_${version}_x64-setup.nsis.zip"
+
+          if (-not (Test-Path $installer)) { throw "Installer was not built: $installer" }
+
+          # Tauri signs either a .nsis.zip updater archive or the installer itself,
+          # depending on the bundler version. Pick whichever exists.
+          if (Test-Path $zipUpdate) {
+            $update = $zipUpdate
+            $signature = "$zipUpdate.sig"
+          } else {
+            $update = $installer
+            $signature = "$installer.sig"
+          }
+          if (-not (Test-Path $signature)) { throw "Updater signature was not built: $signature" }
+
+          New-Item -ItemType Directory -Path "dist-portable/resources" -Force | Out-Null
+          Copy-Item "src-tauri/target/release/avdock.exe" "dist-portable/AVDock.exe" -Force
+          Copy-Item "src-tauri/resources/ffmpeg.exe" "dist-portable/resources/ffmpeg.exe" -Force
+          $portable = "AVDock_${version}_portable.zip"
+          Compress-Archive -Path "dist-portable/*" -DestinationPath $portable -Force
+
+          $sig = (Get-Content $signature -Raw).Trim()
+          $latest = [ordered]@{
+            version = $version
+            notes = "AVDock $version"
+            pub_date = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $sig
+                url = "https://github.com/$env:REPOSITORY/releases/download/$tag/$([System.IO.Path]::GetFileName($update))"
+              }
+            }
+          }
+          $latest | ConvertTo-Json -Depth 5 | Set-Content -Path "latest.json" -Encoding utf8
+
+          $files = @($installer)
+          if ($update -ne $installer) { $files += $update }
+          $files += $signature
+          $files += $portable
+          $files += "latest.json"
+
+          "FILES<<__AVDOCK_FILES__" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          ($files -join "`n") | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "__AVDOCK_FILES__" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: AVDock ${{ env.VERSION }}
+          body: |
+            AVDock ${{ env.VERSION }}
+
+            Два варианта установки:
+
+            - **Установочная версия** — `AVDock_${{ env.VERSION }}_x64-setup.exe`
+            - **Портативная версия** — `AVDock_${{ env.VERSION }}_portable.zip`
+
+            yt-dlp обновляется автоматически внутри приложения. Обновление AVDock приходит через `latest.json`.
+          files: ${{ env.FILES }}
+          draft: false
+          prerelease: false

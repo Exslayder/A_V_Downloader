@@ -1,17 +1,33 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-
-# Virtual env
-venv/
-.env/
-
-# PyInstaller
-build/
+# Node
+node_modules/
 dist/
-*.spec
 
-# Settings
-settings.json
-image.png
+# Rust / Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Local builds and release artifacts
+build/
+*.exe
+*.zip
+*.msi
+*.nsis
+
+# ffmpeg is downloaded by scripts/get-ffmpeg.ps1
+src-tauri/resources/ffmpeg.exe
+
+# Signing keys and local env
+.tauri-keys/
+.env
+.env.*
+*.pem
+*.key
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
