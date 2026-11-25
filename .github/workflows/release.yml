@@ -128,6 +128,8 @@ jobs:
             - Автообновление yt-dlp и приложения.
 
             Настройки и yt-dlp хранятся в папке `data` рядом с программой.
+
+            ![AVDock](https://raw.githubusercontent.com/Exslayder/AVDock/main/docs/screenshots/downloads-dark.png)
           files: ${{ env.FILES }}
           draft: false
           prerelease: false

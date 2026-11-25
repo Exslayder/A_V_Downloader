@@ -1,5 +1,10 @@
 ﻿# AVDock
 
+[![Release](https://img.shields.io/github/v/release/Exslayder/AVDock?style=flat-square)](https://github.com/Exslayder/AVDock/releases)
+![Platform](https://img.shields.io/badge/platform-Windows%2010%2F11-0078D4?style=flat-square)
+![Tauri](https://img.shields.io/badge/Tauri-2-24C8DB?style=flat-square&logo=tauri&logoColor=white)
+![Rust](https://img.shields.io/badge/Rust-1.77%2B-000000?style=flat-square&logo=rust&logoColor=white)
+
 Настольное приложение для Windows: скачивает видео и музыку с YouTube и SoundCloud и конвертирует медиа в популярные форматы.
 
 AVDock — новая версия проекта `A_V_Downloader`: тот же движок загрузки (yt-dlp) и те же режимы, но вместо консольного меню интерфейс на Tauri 2 + React с Rust-бэкендом.
@@ -18,6 +23,20 @@ AVDock — новая версия проекта `A_V_Downloader`: тот же 
 - **Языки** — русский и английский.
 - **Обложки и теги** — MP3 с обложкой и метаданными ID3.
 - **Автообновления** — yt-dlp обновляется сам, AVDock — через GitHub Releases.
+
+## Скриншоты
+
+Тёмная тема:
+
+![Загрузки — тёмная тема](docs/screenshots/downloads-dark.png)
+
+Светлая тема:
+
+![Загрузки — светлая тема](docs/screenshots/downloads-light.png)
+
+Конвертер:
+
+![Конвертер](docs/screenshots/converter-light.png)
 
 ## Установка
 
